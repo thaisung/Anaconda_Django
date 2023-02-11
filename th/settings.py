@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-1vp=-*#%p!g0x3i3fwec-0k^5hrnh$fj370d6&n=m_d$6*&m=p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['626.vn','localhost']
 
 
 # Application definition
@@ -99,7 +99,7 @@ WSGI_APPLICATION = 'th.wsgi.application'
 DATABASES = {
 'default': {
 'ENGINE': 'django.db.backends.postgresql_psycopg2',
-'NAME': 'postgresthat',
+'NAME': 'ThaiPt_Django',
 'USER': 'ThaiPt',
 'PASSWORD': 'Vuthai@1996',
 'HOST': 'localhost',
