@@ -1,8 +1,8 @@
-from .models import User,CategoryProduct,ListProduct,AdminInformation,PersonalTransactionHistory,BankInformation
+from .models import User,CategoryProduct,ListProduct,AdminInformation,PersonalTransactionHistory,BankInformation,CryptoInformation
 import rest_framework.status
 from rest_framework.response import Response
 from rest_framework import viewsets
-from .serializers import UserSerializer,ListProductSerializer,CategoryProductSerializer,AdminInformationSerializer,BankInformationSerializer,PersonalTransactionHistorySerializer,PersonalSerializer
+from .serializers import UserSerializer,ListProductSerializer,CategoryProductSerializer,AdminInformationSerializer,BankInformationSerializer,CryptoInformationSerializer,PersonalTransactionHistorySerializer,PersonalSerializer
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -42,23 +42,23 @@ from django.db import models
 from django.utils import timezone
 # Create your views here.
 
-class UserViewSet(viewsets.ViewSet,generics.CreateAPIView):
-    queryset = User.objects.filter(is_active=True)
-    serializer_class = UserSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['email']
-    parser_classes = [MultiPartParser, ]
+# class UserViewSet(viewsets.ViewSet,generics.CreateAPIView):
+#     queryset = User.objects.filter(is_active=True)
+#     serializer_class = UserSerializer
+#     filter_backends = [DjangoFilterBackend]
+#     filterset_fields = ['email']
+#     parser_classes = [MultiPartParser, ]
 
-    def get_permissions(self):
-        if self.action == 'list':
-            return [permissions.IsAuthenticated()]
-        if self.action == 'retrieve':
-            return [permissions.IsAuthenticated()]
-        if self.action == 'update':
-            return [permissions.IsAuthenticated()]
-        if self.action == 'partial_update':
-            return [permissions.IsAuthenticated()]
-        return [permissions.AllowAny()]
+#     def get_permissions(self):
+#         if self.action == 'list':
+#             return [permissions.IsAuthenticated()]
+#         if self.action == 'retrieve':
+#             return [permissions.IsAuthenticated()]
+#         if self.action == 'update':
+#             return [permissions.IsAuthenticated()]
+#         if self.action == 'partial_update':
+#             return [permissions.IsAuthenticated()]
+#         return [permissions.AllowAny()]
 
 # ---Du lieu vao la JSON--
 @api_view(['POST'])
@@ -321,7 +321,9 @@ def login_api(request):
         captchav2 = request.data['captchav2']
         url = "https://www.google.com/recaptcha/api/siteverify"
         data ={"response":captchav2,"secret":"6LfaruMjAAAAAPFwSCuW4-Yda-D-CN8JqZWq6M9O"}
-
+        data_user = User.objects.get(username=username,is_active=True)
+        data_user_json = UserSerializer(data_user).data
+        email = data_user_json['email']
 
         if  username != None and password != None:
 
@@ -332,20 +334,36 @@ def login_api(request):
                     response = requests.request("POST", url, data=data)
                     human = response.json()['success']
                     if human == True:
-                        # try:
-                            serializer = AuthTokenSerializer(data=request.data)
-                            serializer.is_valid(raise_exception=True)
-                            user = serializer.validated_data['user']
-                            __,token = AuthToken.objects.create(user)
+                        try:
+                            if data_user_json['Two_factor_authentication'] == 'OFF':
+                                serializer = AuthTokenSerializer(data=request.data)
+                                serializer.is_valid(raise_exception=True)
+                                user = serializer.validated_data['user']
+                                __,token = AuthToken.objects.create(user)
 
-                            user.last_login = timezone.now()
-                            user.save(update_fields=['last_login'])
+                                user.last_login = timezone.now()
+                                user.save(update_fields=['last_login'])
 
-                            message = {'Login information':'Logged in successfully !','id':user.id,'email':user.email,'username':user.username,'Money':user.Money,'token':token}
-                            return Response(message,status=status.HTTP_200_OK)
-                        # except:
-                        #     message = {'Error message': 'Thông tin đăng nhập không hợp lệ !','Error message English':'Invalid login information !'}
-                        #     return Response(message, status=status.HTTP_400_BAD_REQUEST)
+                                message = {'Login information':'Logged in successfully !','id':user.id,'email':user.email,'username':user.username,'Money':user.Money,'token':token,'Two_factor_authentication':user.Two_factor_authentication}
+                                return Response(message,status=status.HTTP_200_OK)
+                            if data_user_json['Two_factor_authentication'] == 'ON':
+                                try:
+                                    subject = 'Please use this level 2 password to proceed with your account login !'
+                                    otp = random.randint(100000,999999)
+                                    message = 'Password Level 2 of '+"'"+ str(username) +"'"+' account is ' + str(otp)
+                                    email_from = settings.EMAIL_HOST
+                                    send_mail(subject, message, email_from, [email])
+
+                                    data_user.Password_Level_2 = otp
+                                    data_user.save()
+                                    message = {'Login information':'Two factor authentication','Password Level 2 information': 'Password Level 2 sent successfully!','username':username,'password':password}
+                                    return Response(message, status=status.HTTP_201_CREATED)
+                                except:
+                                    message = {'Error message': 'Server error !'}
+                                    return Response(message, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        except:
+                            message = {'Error message': 'Thông tin đăng nhập không hợp lệ !','Error message English':'Invalid login information !'}
+                            return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
                     else:
                         message = {'Error message': 'Hệ thống cho rằng bạn là 1 robot, nên không thể xác thực !','Error message English':'The system thinks you are a robot, so cannot authenticate !'}
@@ -364,6 +382,75 @@ def login_api(request):
         message = {'Error message': 'Thông tin đăng nhập không chính xác !','Error message English':'Login information is incorrect !'}
         return Response(message, status=status.HTTP_400_BAD_REQUEST)
 
+# ---Du lieu vao la JSON--
+@api_view(['POST'])
+def login_Two_factor_authentication(request):
+    # try:
+        username = request.data['username']
+        password = request.data['password']
+        Password_Level_2 = request.data['Password_Level_2']
+        data_user = User.objects.get(username=username,is_active=True)
+        data_user_json = UserSerializer(data_user).data
+
+        if  username != None and password != None:
+
+            if  username.split() != [] and password.split() != []:
+
+                if  list(username).count(' ') == 0 and list(password).count(' ') == 0:
+                    # try:
+                    if int(data_user_json['Password_Level_2']) == int(Password_Level_2):
+                        serializer = AuthTokenSerializer(data={'username':username,'password':password})
+                        serializer.is_valid(raise_exception=True)
+                        user = serializer.validated_data['user']
+                        __,token = AuthToken.objects.create(user)
+
+                        user.last_login = timezone.now()
+                        user.save(update_fields=['last_login'])
+
+                        message = {'Login information':'Logged in successfully !','id':user.id,'email':user.email,'username':user.username,'Money':user.Money,'token':token,'Two_factor_authentication':user.Two_factor_authentication}
+                        return Response(message,status=status.HTTP_200_OK)
+                    else:
+                        message = {'Error message': 'Mật khẩu cấp 2 không chính xác !','Error message English':'Level 2 password is incorrect !'}
+                        return Response(message, status=status.HTTP_400_BAD_REQUEST) 
+
+                    # except:
+                    #     message = {'Error message': 'Thông tin đăng nhập không hợp lệ !','Error message English':'Invalid login information !'}
+                    #     return Response(message, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                        message = {'Error message': 'Thông tin đăng nhập phải là 1 dãy kí tự viết liền !','Error message English':'Login information must be a sequence of characters !'}
+                        return Response(message, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                message = {'Error message': 'Thông tin đăng nhập không được để trống !','Error message English':'Login information cannot be blank !'}
+                return Response(message, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            message = {'Error message': 'Thông tin đăng nhập không được để trống !','Error message English':'Login information cannot be blank !'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+    # except:
+    #     message = {'Error message': 'Thông tin đăng nhập không chính xác !','Error message English':'Login information is incorrect !'}
+    #     return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes((IsAuthenticated, ))
+def ON_OFF_2_factor_authentication(request):
+    try:
+        id_user = request.data["id"]
+        token = request.data["token"]
+        ON_OFF = request.data["ON_OFF"]
+        data_user = User.objects.get(id=id_user,is_active=True)
+        data_token = AuthToken.objects.get(token_key=token[:CONSTANTS.TOKEN_KEY_LENGTH])
+
+        if int(data_token.user_id) == int(data_user.id):
+            data_user.Two_factor_authentication = ON_OFF
+            data_user.save(update_fields=['Two_factor_authentication'])
+            message = {'2-factor authentication information':'2-factor authentication saved successfully !','ON_OFF':ON_OFF}
+            return Response(message,status=status.HTTP_200_OK)
+        else:
+            message = {'Error message': 'This account is Invalid !'}
+            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+    except:
+        message = {'Error message': 'Invalid data !'}
+        return Response(message, status=status.HTTP_400_BAD_REQUEST) 
+
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated, ))
@@ -371,15 +458,13 @@ def keep_login(request):
     try:
         id_user = request.data["id"]
         token = request.data["token"]
-        # id_user = request.data["id"]
-        # token = request.data["token"]
         data_user = User.objects.get(id=id_user,is_active=True)
         data_token = AuthToken.objects.get(token_key=token[:CONSTANTS.TOKEN_KEY_LENGTH])
 
         if int(data_token.user_id) == int(data_user.id):
             data_user.last_login = timezone.now()
             data_user.save(update_fields=['last_login'])
-            message = {'Login information':'Logged in successfully !',"data_user":{"id":data_user.id,"email":data_user.email,"username":data_user.username,"Money":data_user.Money,"token":token}}
+            message = {'Login information':'Logged in successfully !',"data_user":{"id":data_user.id,"email":data_user.email,"username":data_user.username,"Money":data_user.Money,"token":token,"Two_factor_authentication":data_user.Two_factor_authentication}}
             return Response(message,status=status.HTTP_200_OK)
         else:
             message = {'Error message': 'This account is Invalid !'}
@@ -782,6 +867,18 @@ def bank_infor(request):
     except:
         message = {'Error message': 'Server error !'}
         return Response(message,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+# @permission_classes((IsAuthenticated, ))
+def crypto_infor(request):
+    # try:
+        data_crypto_infor = CryptoInformation.objects.filter(Active=True)
+        data_crypto_infor_serializer = CryptoInformationSerializer(data_crypto_infor,many=True)
+        message = data_crypto_infor_serializer.data
+        return Response(message,status=status.HTTP_200_OK)
+    # except:
+    #     message = {'Error message': 'Server error !'}
+    #     return Response(message,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])

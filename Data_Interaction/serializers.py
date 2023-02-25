@@ -1,6 +1,6 @@
 from rest_framework import serializers,validators
 from django.contrib.auth.models import User
-from Data_Interaction.models import User,CategoryProduct,ListProduct,AdminInformation,BankInformation,PersonalTransactionHistory
+from Data_Interaction.models import User,CategoryProduct,ListProduct,AdminInformation,BankInformation,CryptoInformation,PersonalTransactionHistory
 from rest_framework.validators import ValidationError
 
 
@@ -15,7 +15,7 @@ from rest_framework import status
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model= User
-        fields=['id','email','username','password','Money','Total_recharge_money','Total_amount_deducted']
+        fields=['id','email','username','password','Money','Total_recharge_money','Total_amount_deducted','Two_factor_authentication','Password_Level_2']
         extra_kwargs = {
             'password':{'write_only':'true'},
         }
@@ -77,4 +77,9 @@ class AdminInformationSerializer(serializers.ModelSerializer):
 class BankInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model=BankInformation 
+        fields='__all__'
+
+class CryptoInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=CryptoInformation
         fields='__all__'

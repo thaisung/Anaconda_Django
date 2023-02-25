@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-1vp=-*#%p!g0x3i3fwec-0k^5hrnh$fj370d6&n=m_d$6*&m=p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['626.vn','localhost']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -99,9 +99,9 @@ WSGI_APPLICATION = 'th.wsgi.application'
 DATABASES = {
 'default': {
 'ENGINE': 'django.db.backends.postgresql_psycopg2',
-'NAME': 'ThaiPt_Django',
-'USER': 'ThaiPt',
-'PASSWORD': 'Vuthai@1996',
+'NAME': 'postgresthat',
+'USER': 'postgres',
+'PASSWORD': 'admin',
 'HOST': 'localhost',
 'PORT': '5432',
 }
@@ -189,7 +189,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'vuthaind@gmail.com'
-EMAIL_HOST_PASSWORD = 'zpqxrbkbbwivuflq'
+EMAIL_HOST_PASSWORD = 'njzbshizdpnmupds'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators

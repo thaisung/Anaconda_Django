@@ -33,37 +33,28 @@ from django.urls import re_path as url
 
 from knox import views as knox_views
 
-admin.site.site_header = 'VANTHAI'                    # default: "Django Administration"
-admin.site.index_title = 'Site VANTHAI'                 # default: "Site administration"
-admin.site.site_title = 'VANTHAI site admin' # default: "Django site admin"
+admin.site.site_header = 'VANTHAI'                    
+admin.site.index_title = 'Site VANTHAI'                 
+admin.site.site_title = 'VANTHAI site admin' 
 
 router = DefaultRouter()
-# # router = SimpleRouter()
-# # router.register('api.check_list_category', views.check_list_category)
-# router.register('user',views.UserViewSet)
-# # router.register('usercheckmail',views.EmailViewSet)
-# router.register('listproduct',views.ListProductViewSet)
-# router.register('listcategory',views.CategoryProductViewSet)
 router.register('admininfor',views.AdminInformationViewSet)
-# router.register('personaltransactionhistory',views.PersonalTransactionHistoryViewSet)
-# router.register('personalhistory',views.PersonalViewSet)
-# # router.register('resetpassword',views.ResetPasswordViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # path('admin/', admin_site.urls),
 
     path('', include(router.urls)),
 
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('createuser/',views.create_user),
     path('login/', views.login_api),
+    path('on_off_2_factor_authentication/', views.ON_OFF_2_factor_authentication),
+    path('login_Two_factor_authentication/', views.login_Two_factor_authentication),
     path('keeplogin/', views.keep_login),
     path('changepassword/', views.change_password),
     path('changemoney/', views.change_money),
     path('transactionhistoryuser/', views.transaction_history_user),
     path('bankinfor/', views.bank_infor),
+    path('cryptoinfor/', views.crypto_infor),
     path('sendrechargedata/', views.send_recharge_data),
 
     path('filteruser/', views.loc_usernam_vs_mail),
@@ -83,9 +74,6 @@ urlpatterns = [
 
     path('buydata/', views.mua_hang),
     path('downloadfiletxt/', views.down_load_txt),
-    # path('api/auth/login', knox_views.LoginView.as_view()),
-    # path('api/logoutknox', knox_views.LogoutView.as_view()),
-    # path('api/logoutknox', knox_views.LogoutView.as_view()),
 
     url(r'user/auth/', include('knox.urls')),
 ]+ static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
